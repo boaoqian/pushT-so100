@@ -11,7 +11,7 @@ import cv2
 from scipy.spatial.transform import Rotation as R  # 处理旋转
 from helper import *
 
-# --- 配置参数 ---
+#配置参数
 MOVE_SPEED = 0.1
 ROT_SPEED = 1.0
 DEADZONE = 0.1
@@ -19,18 +19,18 @@ DEADZONE = 0.1
 FPS = 30
 VIDEO_STEP = 1.0 / FPS
 
-# --- 录制状态 ---
+#录制状态
 is_recording = False
 record_buffer = {}  # 存储每帧数据
 
 if not os.path.exists("RecordTemp"):
     os.mkdir("RecordTemp")
 
-# --- 控制冷却（防止按住按钮一直触发） ---
+#防止按住按钮一直触发
 buttonCooldown = 0.0
 COOLDOWN_SEC = 0.5
 
-# --- 加载模型 ---
+#加载模型
 XML_PATH = "./chernyadev mujoco_menagerie add-so-arm100 trs_so_arm100/world.xml"
 model = mujoco.MjModel.from_xml_path(XML_PATH)
 data = mujoco.MjData(model)
@@ -42,7 +42,7 @@ act_ids = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, n) for n in ac
 MOCAP_NAME = "target_mocap"
 mocap_id = model.body(MOCAP_NAME).mocapid[0]
 
-# 找到目标物体 T_block 的 free joint 的 qpos 起始地址
+# 找到T_block
 t_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "T_block")
 t_jnt_adr = model.body_jntadr[t_body_id]
 t_qpos_adr = model.jnt_qposadr[t_jnt_adr]
@@ -145,7 +145,7 @@ def joystick_control():
 def solve_ik_stub():
     data.ctrl[act_ids] = data.qpos[act_ids]
 
-# --- 创建离屏渲染器 ---
+#渲染器
 renderer = mujoco.Renderer(model, height=480, width=640)
 
 print("控制说明: X重置, B录制开关, Start退出;")
@@ -164,7 +164,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         mujoco.mj_step(model, data)
         ok, dxy, dyaw = check_xy_pose_match(model, data, "T_block", "T_sign",
-                                   pos_tol=0.028, yaw_tol_deg=5.0)
+                                   pos_tol=0.03, yaw_tol_deg=5.0)
         if ok and not is_success:
             print("成功!")
             is_success = True
@@ -183,29 +183,29 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             combined = np.hstack([img_top, img_side])  # (H, W*2, 3)
             display_bgr = cv2.cvtColor(combined, cv2.COLOR_RGB2BGR)
 
-            # 录制指示红点
+            #录制指示
             if is_recording:
                 cv2.circle(display_bgr, (30, 30), 10, (0, 0, 255), -1)
 
             cv2.imshow("Robot Observation (Top | Side)", display_bgr)
 
-            # --- 录制逻辑（只在渲染帧存，和画面保持一致） ---
+            #录制逻辑
             if is_recording:
                     record_buffer["cam_top"].append(img_top)
                     record_buffer["cam_side"].append(img_side)
                     record_buffer["action"].append(data.ctrl[act_ids])
                     record_buffer["pose"].append(data.qpos[act_ids])
 
-            # viewer 同步 + 键盘
+            # viewer 同步+cv2更新
             viewer.sync()
             cv2.waitKey(1)
 
-        # --- 帧率控制（按 timestep 跑） ---
+        # 物理模拟帧率控制
         elapsed = time.time() - step_start
         if elapsed < model.opt.timestep:
             time.sleep(model.opt.timestep - elapsed)
 
-# --- 清理 ---
+#清理
 cv2.destroyAllWindows()
 pygame.quit()
 print("程序退出")
