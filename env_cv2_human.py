@@ -21,7 +21,7 @@ VIDEO_STEP = 1.0 / FPS
 
 # --- 录制状态 ---
 is_recording = False
-record_buffer = []  # 存储每帧数据
+record_buffer = {}  # 存储每帧数据
 
 if not os.path.exists("RecordTemp"):
     os.mkdir("RecordTemp")
@@ -31,7 +31,7 @@ buttonCooldown = 0.0
 COOLDOWN_SEC = 0.5
 
 # --- 加载模型 ---
-XML_PATH = "/media/qba/Data/Project/Study/MuJoCo-Tutorial/chernyadev mujoco_menagerie add-so-arm100 trs_so_arm100/world.xml"
+XML_PATH = "./chernyadev mujoco_menagerie add-so-arm100 trs_so_arm100/world.xml"
 model = mujoco.MjModel.from_xml_path(XML_PATH)
 data = mujoco.MjData(model)
 
@@ -78,13 +78,19 @@ def record_toggle():
     is_recording = not is_recording
     if is_recording:
         print("录制状态: ON")
-        record_buffer.clear()
+        record_buffer["cam_top"] = []
+        record_buffer["cam_side"] = []
+        record_buffer["action"] = []
+        record_buffer["pose"] = []
     else:
-        if len(record_buffer) > 0:
+        if len(record_buffer["cam_top"]) > 0:
             filename = f"RecordTemp/record-{int(time.time())}.pkl"
+            record_buffer["action"] = record_buffer["action"][1:]
+            record_buffer["action"].append(record_buffer["action"][-1])
             with open(filename, "wb") as f:
                 pickle.dump(record_buffer, f)
-            print(f"录制状态: OFF，已保存: {filename}，帧数: {len(record_buffer)}")
+            print(f"录制状态: OFF，已保存: {filename}，帧数: {len(record_buffer['cam_top'])}")
+            record_buffer.clear()
         else:
             print("录制状态: OFF（无数据）")
         record_buffer.clear()
@@ -151,7 +157,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         step_start = time.time()
 
-        # --- 控制 + 仿真 ---
         solve_ik_stub()
         want_quit = joystick_control()
         if want_quit:
@@ -159,12 +164,12 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         mujoco.mj_step(model, data)
         ok, dxy, dyaw = check_xy_pose_match(model, data, "T_block", "T_sign",
-                                   pos_tol=0.015, yaw_tol_deg=5.0)
+                                   pos_tol=0.028, yaw_tol_deg=5.0)
         if ok and not is_success:
             print("成功!")
             is_success = True
 
-        # --- 渲染节流到固定 FPS ---
+        # 帧率控制
         video_time += model.opt.timestep
         if video_time >= VIDEO_STEP:
             video_time = 0.0
@@ -186,13 +191,10 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
             # --- 录制逻辑（只在渲染帧存，和画面保持一致） ---
             if is_recording:
-                record_buffer.append({
-                    "cam_top": img_top.copy(),
-                    "cam_side": img_side.copy(),
-                    "action": data.ctrl[act_ids].copy(),
-                    "state": data.qpos[act_ids].copy(),
-                    "sim_time": float(data.time),
-                })
+                    record_buffer["cam_top"].append(img_top)
+                    record_buffer["cam_side"].append(img_side)
+                    record_buffer["action"].append(data.ctrl[act_ids])
+                    record_buffer["pose"].append(data.qpos[act_ids])
 
             # viewer 同步 + 键盘
             viewer.sync()
