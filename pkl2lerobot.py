@@ -86,5 +86,5 @@ def batch_convert_pkls_to_lerobot(input_dir, repo_id, fps=30, tolerance=0.01):
 
 if __name__ == "__main__":
     INPUT_FOLDER = "RecordTemp"
-    OUTPUT_REPO = "/media/qba/Data/Project/Robot/So100PushT/myDataset"
-    batch_convert_pkls_to_lerobot(INPUT_FOLDER, OUTPUT_REPO, tolerance=0.01)
+    OUTPUT_REPO = "/media/qba/Data/Project/Robot/So100PushT/data/myDataset2"
+    batch_convert_pkls_to_lerobot(INPUT_FOLDER, OUTPUT_REPO, tolerance=0.001)

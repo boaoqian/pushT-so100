@@ -98,7 +98,6 @@
               <geom class="motor_visual" mesh="Wrist_Pitch_Roll_Motor"/>
               <geom class="collision" mesh="Wrist_Pitch_Roll"/>
               <body name="Fixed_Jaw" pos="0 -0.0601 0" quat="0.707109 0 0.707105 0">
-                <!-- <site name="ee_site" pos="0 -0.1 0" size="0.01"/> -->
                 <inertial pos="0.00552377 -0.0280167 0.000483583" quat="0.41836 0.620891 -0.350644 0.562599" mass="0.0929859" diaginertia="5.03136e-05 4.64098e-05 2.72961e-05"/>
                 <joint name="Wrist_Roll" class="Wrist_Roll" pos="0 0 0" axis="0 1 0"/>
                 <geom class="visual" mesh="Fixed_Jaw"/>

@@ -1,5 +1,5 @@
 <mujoco model="so_arm100 scene">
-  <include file="so_arm100_leader.xml"/>
+  <include file="so_arm100.xml"/>
 
   <statistic center="0 -0.2 0.1" extent="0.4"/>
 
@@ -18,16 +18,16 @@
     <worldbody>
     <light directional="true" diffuse=".8 .8 .8" specular=".2 .2 .2" pos="0 0 5" dir="0 0 -1"/>
     <geom name="floor" type="plane" size="1 1 .05" pos="0 0 0" rgba=".8 .8 .8 1"/>
-
-    <body name="T_block" pos="0.3 0 0.05">
-        <freejoint name="object_joint"/> 
-        <geom name="T_top" type="box" size="0.05 0.015 0.015" pos="0 0.035 0" mass="0.05" rgba="0 0.7 0.3 1"/>
-        <geom name="T_stem" type="box" size="0.015 0.035 0.015" pos="0 -0.015 0" mass="0.05" rgba="0 0.7 0.3 1"/>
+    <body name="T_block" pos="0.3 5 0.05">
+      <freejoint name="object_joint"/> 
+      <site name="T_block_anchor" pos="0 0 0" size="0.01" rgba="0 0 0 0"/>
+      <geom name="T_top" type="box" size="0.05 0.015 0.015" pos="0 0.035 0" mass="0.05" rgba="0 0.7 0.3 1"/>
+      <geom name="T_stem" type="box" size="0.015 0.035 0.015" pos="0 -0.015 0" mass="0.05" rgba="0 0.7 0.3 1"/>
     </body>
-
     <body name="T_sign" pos="0.3 0 0.001">
-        <geom type="box" size="0.05 0.015 0.0001" rgba="1 1 0 0.5" contype="0" conaffinity="0"/>
-        <geom type="box" size="0.015 0.035 0.0001" pos="0 -0.05 0" rgba="1 1 0 0.5" contype="0" conaffinity="0"/>
+        <site name="T_sign_anchor" pos="0 0 0" size="0.01" rgba="0 0 0 0"/>
+        <geom type="box" size="0.05 0.015 0.0001" pos="0 0.035 0" rgba="1 1 0 0.5" contype="0" conaffinity="0"/>
+        <geom type="box" size="0.015 0.035 0.0001" pos="0 -0.015 0" rgba="1 1 0 0.5" contype="0" conaffinity="0"/>
     </body>
     <camera name="top_view" pos="0.3 0 0.8" euler="0 0 0"/>
     <camera name="side_view" pos="0.255 -0.7 0.047" xyaxes="0.999 0.047 0.000 0.010 -0.208 0.978"/>

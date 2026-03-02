@@ -31,7 +31,7 @@ buttonCooldown = 0.0
 COOLDOWN_SEC = 0.5
 
 #加载模型
-XML_PATH = "./chernyadev mujoco_menagerie add-so-arm100 trs_so_arm100/world.xml"
+XML_PATH = "./chernyadev mujoco_menagerie add-so-arm100 trs_so_arm100/human_env.xml"
 model = mujoco.MjModel.from_xml_path(XML_PATH)
 data = mujoco.MjData(model)
 
@@ -48,6 +48,7 @@ t_jnt_adr = model.body_jntadr[t_body_id]
 t_qpos_adr = model.jnt_qposadr[t_jnt_adr]
 is_success = False
 
+
 # --- 初始化 Pygame 手柄 ---
 pygame.init()
 pygame.joystick.init()
@@ -60,7 +61,7 @@ else:
     exit()
 
 def random_t_pos():
-    global is_success
+    global is_success, is_recording
     is_success = False
     data.qpos[t_qpos_adr:t_qpos_adr+3] = np.array([
         np.random.uniform(0.2, 0.4),
@@ -71,6 +72,8 @@ def random_t_pos():
     # free joint quat: (w, x, y, z)
     data.qpos[t_qpos_adr+3:t_qpos_adr+7] = np.array([np.cos(rad), 0.0, 0.0, np.sin(rad)])
     mujoco.mj_forward(model, data)
+    record_buffer.clear()
+    is_recording = False
 
 def record_toggle():
     """切换录制：停止时保存 pkl"""
@@ -158,17 +161,17 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         step_start = time.time()
 
         solve_ik_stub()
+        # solve_ik()
         want_quit = joystick_control()
         if want_quit:
             break
 
         mujoco.mj_step(model, data)
-        ok, dxy, dyaw = check_xy_pose_match(model, data, "T_block", "T_sign",
-                                   pos_tol=0.03, yaw_tol_deg=5.0)
+        ok, dxy, dyaw = check_xy_pose_match(model, data, "T_sign_anchor", "T_block_anchor",
+                                   pos_tol=0.01, yaw_tol_deg=3.0)
         if ok and not is_success:
-            print("成功!")
+            print(f"成功! {dxy} {dyaw}")
             is_success = True
-
         # 帧率控制
         video_time += model.opt.timestep
         if video_time >= VIDEO_STEP:
@@ -179,15 +182,15 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
             renderer.update_scene(data, camera="side_view")
             img_side = renderer.render()
-
-            combined = np.hstack([img_top, img_side])  # (H, W*2, 3)
-            display_bgr = cv2.cvtColor(combined, cv2.COLOR_RGB2BGR)
+            img_top_cv2 = cv2.cvtColor(img_top, cv2.COLOR_RGB2BGR)
+            img_side_cv2 = cv2.cvtColor(img_side, cv2.COLOR_RGB2BGR)
 
             #录制指示
             if is_recording:
-                cv2.circle(display_bgr, (30, 30), 10, (0, 0, 255), -1)
+                cv2.circle(img_top_cv2, (30, 30), 10, (0, 0, 255), -1)
 
-            cv2.imshow("Robot Observation (Top | Side)", display_bgr)
+            cv2.imshow("Robot Observation Top", img_top_cv2)
+            cv2.imshow("Robot Observation Side", img_side_cv2)
 
             #录制逻辑
             if is_recording:
@@ -196,7 +199,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     record_buffer["action"].append(data.ctrl[act_ids])
                     record_buffer["pose"].append(data.qpos[act_ids])
 
-            # viewer 同步+cv2更新
+            #viewer同步+cv2更新
             viewer.sync()
             cv2.waitKey(1)
 

@@ -11,24 +11,33 @@ def angle_wrap_pi(a):
     """把角度差 wrap 到 [-pi, pi]"""
     return (a + np.pi) % (2*np.pi) - np.pi
 
-def check_xy_pose_match(model, data, body_a, body_b, pos_tol=0.01, yaw_tol_deg=5.0):
-    """
-    检查两个 body 是否在 XY 平面位置接近且朝向（yaw）接近
-    pos_tol: 允许的 XY 距离（米）
-    yaw_tol_deg: 允许的 yaw 误差（度）
-    返回: (is_match, xy_dist, yaw_err_deg)
-    """
-    ida = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, body_a)
-    idb = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, body_b)
+def check_xy_pose_match(model, data, site_a_name, site_b_name, pos_tol=0.01, yaw_tol_deg=5.0):
+    # 1. 获取 Site 的全局 ID
+    site_a_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, site_a_name)
+    site_b_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, site_b_name)
 
-    pa = data.xpos[ida][:2]
-    pb = data.xpos[idb][:2]
-    xy_dist = float(np.linalg.norm(pa - pb))
+    # 2. 获取 Site 的全局位置 (xpos)
+    # site.xpos 已经包含了 body 的位置和 site 自身的偏移
+    pa = data.site_xpos[site_a_id][:2]
+    pb = data.site_xpos[site_b_id][:2]
+    xy_dist = np.linalg.norm(pa - pb)
 
-    yawa = body_yaw_from_xmat(data.xmat[ida])
-    yawb = body_yaw_from_xmat(data.xmat[idb])
-    yaw_err = angle_wrap_pi(yawa - yawb)
-    yaw_err_deg = float(abs(yaw_err) * 180.0 / np.pi)
+    # 3. 获取 Site 所在 Body 的旋转矩阵
+    # 注意：site 本身也有旋转，但通常我们对比 body 的朝向
+    body_a_id = model.site_bodyid[site_a_id]
+    body_b_id = model.site_bodyid[site_b_id]
+    
+    mat_a = data.xmat[body_a_id].reshape(3, 3)
+    mat_b = data.xmat[body_b_id].reshape(3, 3)
 
-    ok = (xy_dist <= pos_tol) and (yaw_err_deg <= yaw_tol_deg)
-    return ok, xy_dist, yaw_err_deg
+    # 4. 计算 Yaw 角度 (从旋转矩阵提取)
+    # 假设物体绕 Z 轴旋转，使用 atan2(R[1,0], R[0,0])
+    yaw_a = np.arctan2(mat_a[1, 0], mat_a[0, 0])
+    yaw_b = np.arctan2(mat_b[1, 0], mat_b[0, 0])
+    
+    # 角度差值处理 (Wrap to [-pi, pi])
+    yaw_err = (yaw_a - yaw_b + np.pi) % (2 * np.pi) - np.pi
+    yaw_err_deg = np.abs(np.degrees(yaw_err))
+
+    is_match = (xy_dist <= pos_tol) and (yaw_err_deg <= yaw_tol_deg)
+    return is_match, xy_dist, min(180-yaw_err_deg,yaw_err_deg)
