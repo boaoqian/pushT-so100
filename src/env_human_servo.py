@@ -10,7 +10,6 @@ import mujoco.viewer
 import numpy as np
 import pygame
 import cv2
-import torch
 from scipy.spatial.transform import Rotation as R
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from helper import *

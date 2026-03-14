@@ -1,15 +1,16 @@
 import torch
-import numpy as np
 import cv2
 from pathlib import Path
-from collections import deque
 
+import logging
 from env_gym_ee import PushT
 from gymnasium.wrappers import RecordVideo
 from lerobot.datasets.lerobot_dataset import LeRobotDatasetMetadata
 from lerobot.policies.diffusion.modeling_diffusion import DiffusionPolicy
 from lerobot.policies.factory import make_pre_post_processors
 from lerobot.policies.utils import build_inference_frame
+
+logger = logging.getLogger(__name__)
 def main():
     ckpt_path = Path("outputs/ckpt/final_model")
     dataset_id = Path("data/NewData3.9-ee-2d-pos")
@@ -34,7 +35,7 @@ def main():
 
     obs, _ = env.reset()
 
-    print("开始推理...")
+    logger.info("开始推理...")
     terminated = False
 
     try:
@@ -54,10 +55,10 @@ def main():
             actions_to_execute = actions_sequence[0].numpy()
             obs, reward, terminated, truncated, info = env.step(actions_to_execute)
             if terminated and not truncated:
-                print(f"目标达成! {info}")
+                logger.info(f"目标达成! {info}")
 
     except KeyboardInterrupt:
-        print("\n停止推理。")
+        logger.info("\n停止推理。")
     finally:
         env.close()
 
