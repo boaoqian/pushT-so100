@@ -37,8 +37,8 @@ def batch_convert_pkls_to_lerobot(input_dir, repo_id, fps=30, tolerance=0.01):
                 "shape": (c, h, w), 
                 "names": ["channels", "height", "width"]
             },
-            "observation.state": {"dtype": "float32", "shape": (state_dim,)},
-            "action": {"dtype": "float32", "shape": (action_dim,)}
+            "observation.state": {"dtype": "float32", "shape": (state_dim,) ,"names": ["Rotation", "Pitch", "Elbow", "Wrist_Pitch", "Wrist_Roll"]},
+            "action": {"dtype": "float32", "shape": (action_dim,) ,"names": ["Rotation", "Pitch", "Elbow", "Wrist_Pitch", "Wrist_Roll"]}
         }
     )
 

@@ -1,5 +1,6 @@
 import numpy as np
 import mujoco
+import torchvision.transforms as transforms
 
 def body_yaw_from_xmat(xmat_flat):
     """MuJoCo 的 xmat 是 row-major 的 9 元素，取出 yaw（绕 z 轴）"""

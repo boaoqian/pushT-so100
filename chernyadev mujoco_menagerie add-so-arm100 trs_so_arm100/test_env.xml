@@ -21,8 +21,8 @@
     <body name="T_block" pos="0.3 5 0.05">
       <freejoint name="object_joint"/> 
       <site name="T_block_anchor" pos="0 0 0" size="0.01" rgba="0 0 0 0"/>
-      <geom name="T_top" type="box" size="0.05 0.015 0.015" pos="0 0.035 0" mass="0.05" rgba="0 0.7 0.3 1"/>
-      <geom name="T_stem" type="box" size="0.015 0.035 0.015" pos="0 -0.015 0" mass="0.05" rgba="0 0.7 0.3 1"/>
+      <geom name="T_top" type="box" size="0.05 0.015 0.015" pos="0 0.035 0" mass="0.05" rgba="0 0.7 0.3 1" friction="1 0.005 0.0001"/>
+      <geom name="T_stem" type="box" size="0.015 0.035 0.015" pos="0 -0.015 0" mass="0.05" rgba="0 0.7 0.3 1" friction="1 0.005 0.0001"/>
     </body>
     <body name="T_sign" pos="0.3 0 0.001">
         <site name="T_sign_anchor" pos="0 0 0" size="0.01" rgba="0 0 0 0"/>
@@ -32,4 +32,11 @@
     <camera name="top_view" pos="0.3 0 0.8" euler="0 0 0"/>
     <camera name="side_view" pos="0.255 -0.7 0.047" xyaxes="0.999 0.047 0.000 0.010 -0.208 0.978"/>
     </worldbody>
+    <keyframe>
+      <key
+      qpos="-0.0613246 -1.4005 1.38822 1.02204 0.0525885 -6.06139e-05 0.338473 -0.0361721 0.0149455 -0.596327 -1.52834e-17 2.02977e-17 0.802741"
+      qvel="7.9597e-08 -1.55467e-05 2.83459e-05 -2.1386e-05 -2.43036e-07 1.02129e-06 1.41497e-17 -4.88137e-18 2.45565e-16 -9.98868e-16 3.92049e-17 6.26097e-34"
+      ctrl="-0.0613246 -1.4005 1.38822 1.02204 0.0525885 0"
+      />
+    </keyframe> 
 </mujoco>

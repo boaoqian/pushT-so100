@@ -142,8 +142,4 @@
     <general name="Wrist_Roll" class="Wrist_Roll" joint="Wrist_Roll" biasprm="0 -50 -4.4731"/>
     <general name="Jaw" class="Jaw" joint="Jaw" biasprm="0 -50 -4.47276"/>
   </actuator>
-
-  <keyframe>
-    <key name="home" qpos="0 -1.57079 1.57079 1.57079 -1.57079 0" ctrl="0 -1.57079 1.57079 1.57079 -1.57079 0"/>
-  </keyframe>
 </mujoco>
