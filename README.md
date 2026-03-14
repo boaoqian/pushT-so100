@@ -85,19 +85,6 @@ Run `src/infer.py` to load a trained checkpoint and test its performance in the 
 
 ---
 
-## 📋 Additional Notes
-
-| Item | Description |
-|------|-------------|
-| **Robot** | SO100 (6-DOF manipulator) |
-| **Task** | PushT (contact-rich manipulation) |
-| **Simulator** | MuJoCo (via `mujoco` Python package) |
-| **RL Framework** | Gymnasium + LeRobot 4.4 |
-| **Policy** | Diffusion Policy (CNN backbone) |
-| **Data Format** | LeRobot Zarr/Parquet |
-
----
-
 ## 🔧 Troubleshooting
 
 - **Display issues with MuJoCo rendering**: Ensure you have a working OpenGL context. For headless servers, use `mujoco.Renderer` with `headless=True`.
