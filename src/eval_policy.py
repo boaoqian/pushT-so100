@@ -5,12 +5,13 @@ from pathlib import Path
 from collections import deque
 
 from env_gym_ee import PushT
+from gymnasium.wrappers import RecordVideo
 from lerobot.datasets.lerobot_dataset import LeRobotDatasetMetadata
 from lerobot.policies.diffusion.modeling_diffusion import DiffusionPolicy
 from lerobot.policies.factory import make_pre_post_processors
 from lerobot.policies.utils import build_inference_frame
 def main():
-    ckpt_path = Path("outputs/final_model")
+    ckpt_path = Path("outputs/ckpt/final_model")
     dataset_id = Path("data/NewData3.9-ee-2d-pos")
     env_path = "chernyadev mujoco_menagerie add-so-arm100 trs_so_arm100/human_env.xml"
 
@@ -23,8 +24,14 @@ def main():
         policy.config, dataset_stats=dataset_metadata.stats,pretrained_path=ckpt_path
     )
 
-    # 3. 初始化环境
-    env = PushT(xml_path=env_path ,render_mode="human")
+    raw_env = PushT(xml_path=env_path ,render_mode="rgb_array")
+    env = RecordVideo(
+        raw_env, 
+        video_folder="outputs/recorded_videos", 
+        episode_trigger=lambda x: True,
+        name_prefix="pusht_eval_video"
+    )
+
     obs, _ = env.reset()
 
     print("开始推理...")
@@ -32,6 +39,11 @@ def main():
 
     try:
         while not terminated:
+            frame = cv2.cvtColor(obs["cam_top"], cv2.COLOR_RGB2BGR)
+            cv2.imshow("PushT Live Preview", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
             with torch.no_grad():
                 obs_frame = build_inference_frame(
                 observation=obs, ds_features=dataset_metadata.features, device=device
@@ -41,7 +53,8 @@ def main():
                 actions_sequence = postprocess(actions_sequence)
             actions_to_execute = actions_sequence[0].numpy()
             obs, reward, terminated, truncated, info = env.step(actions_to_execute)
-            env.render_cv2()
+            if terminated and not truncated:
+                print(f"目标达成! {info}")
 
     except KeyboardInterrupt:
         print("\n停止推理。")

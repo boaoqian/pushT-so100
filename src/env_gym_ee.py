@@ -30,9 +30,8 @@ class PushT(gym.Env):
         # 2. 配置 Observation Space
         self.observation_space = spaces.Dict({
             "cam_top": spaces.Box(low=0, high=255, shape=(224, 224, 3), dtype=np.uint8),
-            # "cam_side": spaces.Box(low=0, high=255, shape=(224, 224, 3), dtype=np.uint8),
-            # State = 5个关节角 + 4位姿 (x,y,z,ry) = 9维
-            "observation.state": spaces.Box(low=-10.0, high=10.0, shape=(9,), dtype=np.float32),
+            "cam_side": spaces.Box(low=0, high=255, shape=(224, 224, 3), dtype=np.uint8),
+            "observation.state": spaces.Box(low=-10.0, high=10.0, shape=(5,), dtype=np.float32),
         })
 
         # 获取 ID
@@ -49,21 +48,12 @@ class PushT(gym.Env):
 
     def _set_mocap_4d(self, action):
             """ 
-            将 Action (Delta) 应用于 Mocap 目标 
-            action: [dx, dy, dz, dry]
+            将 Action 应用于 Mocap 目标 
+            action: [x,y]
             """
             dx, dy = action
             org_pos = self.data.mocap_pos[self.mocap_id]
-            
             self.data.mocap_pos[self.mocap_id] = [dx, dy, org_pos[2]]
-
-            # q_curr_raw = self.data.mocap_quat[self.mocap_id]
-            # q_curr = R.from_quat([q_curr_raw[1], q_curr_raw[2], q_curr_raw[3], q_curr_raw[0]])
-
-            # q_delta = R.from_euler('y', dry)
-            # q_new = (q_delta * q_curr).as_quat()
-            # self.data.mocap_quat[self.mocap_id] = [q_new[3], q_new[0], q_new[1], q_new[2]]
-
     def get_observation(self):
         # 视觉渲染
         self.renderer.update_scene(self.data, camera="top_view")
@@ -90,7 +80,7 @@ class PushT(gym.Env):
         
         # 随机化 T_block 位置
         self.data.qpos[self.t_qpos_adr : self.t_qpos_adr+2] = [
-            np.random.uniform(0.25 - self.pos_random_range, 0.25),
+            np.random.uniform(0.25 - self.pos_random_range, 0.25+self.pos_random_range),
             np.random.uniform(-self.pos_random_range, self.pos_random_range)
         ]
         self.data.qpos[self.t_qpos_adr+2] = 0.01
@@ -140,32 +130,45 @@ class PushT(gym.Env):
         
         return obs, reward, terminated, truncated, info
 
-    def render_cv2(self):
-        img = cv2.cvtColor(self._obs["cam_top"], cv2.COLOR_RGB2BGR)
-        img = cv2.resize(img, (448, 448))
-        cv2.imshow("cam top", img)
-        cv2.waitKey(1)
+    def render(self):
+        img1 = cv2.resize(self._obs["cam_top"], (448, 448))
+        img2 = cv2.resize(self._obs["cam_side"], (448, 448))
+        img = np.concatenate([img1, img2], axis=1)
+        return img
     
     def close(self):
-        cv2.destroyAllWindows()
         return super().close()
 
 # --- 测试脚本 ---
 if __name__ == "__main__":
+    from gymnasium.wrappers import RecordVideo
     XML_PATH = "./chernyadev mujoco_menagerie add-so-arm100 trs_so_arm100/human_env.xml"
-    env = PushT(XML_PATH)
+    # 1. 实例化环境并指定渲染模式
+    raw_env = PushT(XML_PATH, render_mode="rgb_array")
+    
+    env = RecordVideo(
+        raw_env, 
+        video_folder="outputs/recorded_videos", 
+        episode_trigger=lambda x: True,
+        name_prefix="pusht_video"
+    )
+
     obs, _ = env.reset()
     
     try:
-        for _ in range(1000):
-            # 随机动作测试
+        for i in range(200):
             action = env.action_space.sample()
-            obs, reward, done, trunc, info = env.step(action)
+            obs, reward, terminated, truncated, info = env.step(action)
             
-            env.render_cv2(obs)
+            frame = cv2.cvtColor(obs["cam_top"], cv2.COLOR_RGB2BGR)
+            cv2.imshow("PushT Live Preview", frame)
             
-            if done or trunc:
-                print(f"Episode Finished. Info: {info}")
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+            if terminated or truncated:
                 obs, _ = env.reset()
+                print(f"Episode finished, video saved.")
+                
     finally:
+        env.close()
         cv2.destroyAllWindows()
