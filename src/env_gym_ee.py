@@ -45,6 +45,7 @@ class PushT(gym.Env):
 
         self.current_step = 0
         self.key_id = 0
+        self._obs = None
 
     def _set_mocap_4d(self, action):
             """ 
@@ -76,6 +77,7 @@ class PushT(gym.Env):
             "cam_side": img_side
         }
         obs |= {k:v for k,v in zip(self.act_names ,self.data.qpos[self.act_ids].copy())}
+        self._obs = obs
         return obs
 
     def reset(self, seed=None, options=None):
@@ -138,12 +140,10 @@ class PushT(gym.Env):
         
         return obs, reward, terminated, truncated, info
 
-    def render_cv2(self, obs):
-        """ 辅助函数：实时显示观测并叠加位姿数值 """
-        img = cv2.cvtColor(obs["cam_top"], cv2.COLOR_RGB2BGR)
+    def render_cv2(self):
+        img = cv2.cvtColor(self._obs["cam_top"], cv2.COLOR_RGB2BGR)
         img = cv2.resize(img, (448, 448))
-        
-        cv2.imshow("PushT Environment Preview", img)
+        cv2.imshow("cam top", img)
         cv2.waitKey(1)
     
     def close(self):

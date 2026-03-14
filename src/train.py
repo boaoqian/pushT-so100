@@ -2,7 +2,7 @@ from pathlib import Path
 import torch
 import time
 from torch.utils.tensorboard import SummaryWriter
-
+import math
 from lerobot.configs.types import FeatureType
 from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
 from lerobot.datasets.utils import dataset_to_policy_features
@@ -11,22 +11,28 @@ from lerobot.policies.diffusion.modeling_diffusion import DiffusionPolicy
 from lerobot.policies.factory import make_pre_post_processors
 
 DATA_PATH = "/home/baqian/qba/pusht/NewData3.9-ee-2d-pos"
+# --- 训练参数 ---
 BATCH_SIZE = 16
+training_steps = 13000
+WARMUP_STEPS = 1000
+log_freq = 100
+save_freq = 1000
 
+# ----------------
+def lr_lambda(current_step: int):
+    if current_step < WARMUP_STEPS:
+        return float(current_step) / float(max(1, WARMUP_STEPS))
+    progress = float(current_step - WARMUP_STEPS) / float(max(1, training_steps - WARMUP_STEPS))
+    return max(0.0, 0.5 * (1.0 + math.cos(math.pi * progress)))
 def main():
     output_directory = Path("outputs/pusht_diffusion")
-    checkpoints_dir = output_directory / "checkpoints"
+    checkpoints_dir = output_directory / f"checkpoints_{time.strftime('%Y-%m-%d_%H:%M')}"
     output_directory.mkdir(parents=True, exist_ok=True)
     checkpoints_dir.mkdir(parents=True, exist_ok=True)
 
     writer = SummaryWriter(log_dir=str(output_directory / f"runs_{time.strftime('%Y-%m-%d_%H:%M')}"))
     device = torch.device("cuda")
     
-    # --- 训练参数 ---
-    training_steps = 5000
-    log_freq = 10
-    save_freq = 1000
-    # ----------------
     
     dataset_metadata = LeRobotDatasetMetadata(DATA_PATH)
     features = dataset_to_policy_features(dataset_metadata.features)
@@ -63,6 +69,7 @@ def main():
     preprocessor, postprocessor = make_pre_post_processors(cfg, dataset_stats=dataset_metadata.stats)
 
     optimizer = torch.optim.Adam(policy.parameters(), lr=1e-4, weight_decay=1e-6)
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
     dataloader = torch.utils.data.DataLoader(
         dataset,
         num_workers=4,
@@ -83,11 +90,14 @@ def main():
             loss, _ = policy.forward(batch)
             loss.backward()
             optimizer.step()
+            scheduler.step()
             optimizer.zero_grad()
 
             if step % log_freq == 0:
+                current_lr = scheduler.get_last_lr()[0]
                 writer.add_scalar("Loss/train", loss.item(), step)
-                print(f"step: {step} loss: {loss.item():.3f}")
+                writer.add_scalar("LR/train", current_lr, step)
+                print(f"step: {step} loss: {loss.item():.3f} lr: {current_lr:.6f}")
 
             if step > 0 and step % save_freq == 0:
                 step_ckpt_dir = checkpoints_dir / f"step_{step}"
@@ -104,7 +114,7 @@ def main():
                 break
 
     
-    final_dir = output_directory / "final_model"
+    final_dir = checkpoints_dir / "final_model"
     policy.save_pretrained(final_dir)
     preprocessor.save_pretrained(final_dir)
     postprocessor.save_pretrained(final_dir)
