@@ -1,0 +1,9 @@
+name: lerobot
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - lerobot=0.4.4
+  - gymnasium=1.2.2
+  - mujoco=3.3.7
+  - pip

@@ -1,6 +1,8 @@
 # MuJoCo SO100 PushT: Diffusion Policy Implementation
 
-This repository provides a complete pipeline for the **PushT task** using the **SO100 robotic arm** within the **MuJoCo** physics engine. It features a Gymnasium-compatible environment, teleoperation for data collection, and training/inference workflows following the **LeRobot 4.0** ecosystem.
+This repository provides a complete pipeline for the **PushT task** using the **SO100 robotic arm** within the **MuJoCo** physics engine. It features a Gymnasium-compatible environment, teleoperation for data collection, and training/inference workflows following the **LeRobot 4.4** ecosystem.
+
+![alt text](assets/image.png)
 
 ## 📂 Project Structure
 
@@ -10,17 +12,17 @@ This repository provides a complete pipeline for the **PushT task** using the **
 ├── data/                     # Dataset storage
 │   ├── NewData*/             # processed demonstration  datasets
 ├── script/                   # Automation utilities
-│   ├── record_data.sh        # Script for batch data collection
-│   ├── merge_dataset.sh      # Script for dataset consolidation
-│   └── train_policy.sh       # Script for launching training jobs
+│   ├── record_demonstration_data.sh # Script for batch data collection
+│   ├── infer.sh              # Script for eval policy
+│   └── train_policy.sh       # Script for training policy
 ├── src/                      # Core source code
 │   ├── env_human_*.py        # Teleop interfaces (EE/Servo) for data collection
 │   ├── env_gym_*.py          # Gymnasium wrappers for training/inference
 │   ├── train.py              # Diffusion Policy training pipeline (LeRobot 4.0)
-│   ├── eval_policy.py        # Model evaluation and inference testing
+│   ├── infer.py        # Model evaluation and inference testing
 │   └── helper.py             # Common utilities and environment helpers
 └── outputs/                  # Training and evaluation results
-    ├── ckpt/                 # Model checkpoints (.pt files)
+    ├── ckpt/                 # Model checkpoints
     ├── runs/                 # TensorBoard logs and training metrics
     └── recorded_videos/      # Renders of policy evaluation episodes
 
@@ -32,39 +34,52 @@ This repository provides a complete pipeline for the **PushT task** using the **
 
 ### 1. Environment Setup
 
-The project relies on `mujoco`, `gymnasium`, and the `lerobot` (v4.0+) library. 
+The project relies on `mujoco`, `gymnasium`, and the `lerobot` (v4.4) library. 
+run `conda env create -f environment.yml` to setup env.
+
 ### 2. Human Demonstration Collection
 
 Use `src/env_human_ee.py` to collect high-quality demonstrations via a game controller (e.g., Xbox/PS5). This script maps joystick input to the **End-Effector (EE)** delta positions in MuJoCo.
 
+![image-20260314190824852](assets/image-20260314190824852.png)
 
 
 ```bash
-python src/env_human_ee.py --num_episodes 50 --output_dir ./data/raw_demos
-
+./script/record_demonstration_data.sh
 ```
 
-### 3. Data Processing (LeRobot 4.0)
+### 3. Data Processing (LeRobot 4.4)
 
 The collected data is converted into the **LeRobot dataset format** (Zarr/Parquet), ensuring compatibility with modern imitation learning pipelines. This includes generating the necessary metadata for the Diffusion Policy.
 
+you can use `lerobot-dataset-viz` to viz your dataset likes this:
+
+``````
+lerobot-dataset-viz --repo-id <your-data-path>  --episode-index 12
+``````
+
+by the way, I also upload my own dataset to huggingface,if you don't want to record data by yourself, you can download my data from here [qian1dqs/so100-pusht](https://huggingface.co/datasets/qian1dqs/so100-pusht)
+
 ### 4. Policy Training
 
-We utilize the **Diffusion Policy** (CNN or Transformer-based) to learn the multimodal distribution of the PushT task.
+We utilize the **Diffusion Policy** (CNN-based) to learn the multimodal distribution of the PushT task.
 
 ```bash
-python src/train.py \
-    --policy.type=diffusion \
-    --dataset.path=./data/lerobot_dataset \
-    --device=cuda
-
+./script/train.sh
 ```
+
+I trained this model on a A100 for 1000 epochs.Model is available on [huggingface](https://huggingface.co/qian1dqs/so100-pusht-diffusion) too.
+
+loss curve:
+
+![image-20260314191742736](assets/image-20260314191742736.png)
 
 ### 5. Evaluation & Inference
 
-Run `src/eval_policy.py` to load a trained checkpoint and test its performance in the MuJoCo simulation. The script provides real-time rendering to visualize the agent's behavior.
+Run `src/infer.py` to load a trained checkpoint and test its performance in the MuJoCo simulation. The script provides real-time rendering to visualize the agent's behavior.
 
 ```bash
-python src/eval_policy.py --checkpoint ./outputs/checkpoints/last.pt
-
+./script/infer.sh
 ```
+
+![image-20260314191633622](assets/image-20260314191633622.png)
