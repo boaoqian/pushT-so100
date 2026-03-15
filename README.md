@@ -80,8 +80,9 @@ Run `src/infer.py` to load a trained checkpoint and test its performance in the 
 ```bash
 ./script/infer.sh
 ```
-
-![image-20260314191633622](assets/image-20260314191633622.png)
+Here are two examples of inference:
+![PushT Task Demo1](assets/show1.gif)
+![PushT Task Demo2](assets/show2.gif)
 
 ---
 
