@@ -2,6 +2,8 @@
 
 This repository provides a complete pipeline for the **PushT task** using the **SO100 robotic arm** within the **MuJoCo** physics engine. It features a Gymnasium-compatible environment, teleoperation for data collection, and training/inference workflows following the **LeRobot 4.4** ecosystem.
 
+[中文版md](README-ZH.md)
+
 ![alt text](assets/image.png)
 
 ## 📂 Project Structure
